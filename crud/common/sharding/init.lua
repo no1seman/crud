@@ -89,4 +89,41 @@ function sharding.tuple_set_and_return_bucket_id(tuple, space, specified_bucket_
     return bucket_id
 end
 
+--- Split tuples by replicaset for specified space
+--
+-- @function split_tuples_by_replicaset
+--
+-- @param table tuples
+--  Tuples to split
+--
+-- @param table space
+--  Specified space
+--
+-- @return[1] batches
+--  Map where key is a replicaset and value
+--  is table of tuples related to this replicaset
+function sharding.split_tuples_by_replicaset(tuples, space)
+    dev_checks('table', 'table')
+
+    local batches = {}
+
+    for _, tuple in ipairs(tuples) do
+        local bucket_id, err = sharding.tuple_set_and_return_bucket_id(tuple, space)
+        if err ~= nil then
+            return nil, BucketIDError:new("Failed to get bucket ID: %s", err)
+        end
+
+        local replicaset, err = vshard.router.route(bucket_id)
+        if replicaset == nil then
+            return nil, GetReplicasetsError:new("Failed to get replicaset for bucket_id %s: %s", bucket_id, err.err)
+        end
+
+        local tuples_by_replicaset = batches[replicaset] or {}
+        table.insert(tuples_by_replicaset, tuple)
+        batches[replicaset] = tuples_by_replicaset
+    end
+
+    return batches
+end
+
 return sharding

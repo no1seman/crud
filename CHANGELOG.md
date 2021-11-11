@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 * Statistics for CRUD operations on router (#224).
 * Integrate CRUD statistics with [`metrics`](https://github.com/tarantool/metrics) (#224).
 * Added LICENSE file into the repository (BSD-2-Clause).
+* Batch insert operation `crud.insert_many()`/`crud.insert_object_many()`
+  with partial consistency
 
 ### Changed
 * Optimize select with known bucket_id (#234).

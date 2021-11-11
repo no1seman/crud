@@ -691,4 +691,26 @@ function utils.check_name_isident(name)
     return true
 end
 
+--- Insert each value form values to list
+--
+-- @function table_extend
+--
+-- @param table list
+--  List to be extended
+--
+-- @param table values
+--  Values to be inserted to list
+--
+-- @return[1] list
+--  List with old values and inserted values
+function utils.table_extend(list, values)
+    dev_checks('table', 'table')
+
+    for _, value in ipairs(values) do
+        table.insert(list, value)
+    end
+
+    return list
+end
+
 return utils
