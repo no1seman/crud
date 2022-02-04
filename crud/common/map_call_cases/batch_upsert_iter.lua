@@ -7,17 +7,20 @@ local BaseIterator = require('crud.common.map_call_cases.base_iter')
 
 local SplitTuplesError = errors.new_class('CallError')
 
-local BatchInsertIterator = {}
-setmetatable(BatchInsertIterator, {__index = BaseIterator})
+local BatchUpsertIterator = {}
+setmetatable(BatchUpsertIterator, {__index = BaseIterator})
 
-function BatchInsertIterator:new(opts)
+function BatchUpsertIterator:new(opts)
     dev_checks('table', {
         tuples = 'table',
         space = 'table',
+        operations = 'table',
         execute_on_storage_opts = 'table',
     })
 
-    local batches_by_replicasets, err = sharding.split_tuples_by_replicaset(opts.tuples, opts.space)
+    local batches_by_replicasets, err = sharding.split_tuples_by_replicaset(opts.tuples, opts.space, {
+        operations = opts.operations,
+    })
     if err ~= nil then
         return nil, SplitTuplesError:new("Failed to split tuples by replicaset: %s", err.err)
     end
@@ -38,11 +41,12 @@ function BatchInsertIterator:new(opts)
     return iter
 end
 
-function BatchInsertIterator:get()
+function BatchUpsertIterator:get()
     local replicaset = self.next_index
     local func_args = {
         self.space_name,
         self.next_batch.tuples,
+        self.next_batch.operations,
         self.opts,
     }
 
@@ -51,4 +55,4 @@ function BatchInsertIterator:get()
     return func_args, replicaset
 end
 
-return BatchInsertIterator
+return BatchUpsertIterator

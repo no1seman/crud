@@ -9,6 +9,7 @@ local replace = require('crud.replace')
 local get = require('crud.get')
 local update = require('crud.update')
 local upsert = require('crud.upsert')
+local batch_upsert = require('crud.batch_upsert')
 local delete = require('crud.delete')
 local select = require('crud.select')
 local truncate = require('crud.truncate')
@@ -59,6 +60,14 @@ crud.update = stats.wrap(update.call, stats.op.UPDATE)
 -- @refer upsert.tuple
 -- @function upsert
 crud.upsert = stats.wrap(upsert.tuple, stats.op.UPSERT)
+
+-- @refer batch_upsert.tuples_batch
+-- @function upsert_many
+crud.upsert_many = batch_upsert.tuples_batch
+
+-- @refer batch_upsert.objects_batch
+-- @function upsert_object_many
+crud.upsert_object_many = batch_upsert.objects_batch
 
 -- @refer upsert.object
 -- @function upsert
@@ -138,6 +147,7 @@ function crud.init_storage()
     replace.init()
     update.init()
     upsert.init()
+    batch_upsert.init()
     delete.init()
     select.init()
     truncate.init()
