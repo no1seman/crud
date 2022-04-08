@@ -172,6 +172,30 @@ local simple_operation_cases = {
         op = 'insert',
     },
     {
+        name = 'insert_many',
+        func = 'crud.insert_many',
+        args = {
+            space_name,
+            {
+                { 21, box.NULL, 'Ivan', 'Ivanov', 20, 'Moscow' },
+                { 31, box.NULL, 'Oleg', 'Petrov', 25, 'Moscow' },
+            }
+        },
+        op = 'insert_many',
+    },
+    {
+        name = 'insert_object_many',
+        func = 'crud.insert_object_many',
+        args = {
+            space_name,
+            {
+                { id = 22, name = 'Ivan', last_name = 'Ivanov', age = 20, city = 'Moscow' },
+                { id = 32, name = 'Oleg', last_name = 'Petrov', age = 25, city = 'Moscow' },
+            }
+        },
+        op = 'insert_many',
+    },
+    {
         name = 'get',
         func = 'crud.get',
         args = { space_name, { 12 } },
@@ -240,6 +264,38 @@ local simple_operation_cases = {
         op = 'upsert',
     },
     {
+        name = 'upsert_many',
+        func = 'crud.upsert_many',
+        args = {
+            space_name,
+            {
+                { 26, box.NULL, 'Ivan', 'Ivanov', 20, 'Moscow' },
+                { 36, box.NULL, 'Oleg', 'Petrov', 25, 'Moscow' },
+            },
+            {
+                {{'+', 'age', 1}},
+                {{'+', 'age', 1}},
+            },
+        },
+        op = 'upsert_many',
+    },
+    {
+        name = 'upsert_object_many',
+        func = 'crud.upsert_object_many',
+        args = {
+            space_name,
+            {
+                { id = 27, name = 'Ivan', last_name = 'Ivanov', age = 20, city = 'Moscow' },
+                { id = 37, name = 'Oleg', last_name = 'Petrov', age = 25, city = 'Moscow' },
+            },
+            {
+                {{'+', 'age', 1}},
+                {{'+', 'age', 1}}
+            },
+        },
+        op = 'upsert_many',
+    },
+    {
         name = 'delete',
         func = 'crud.delete',
         args = { space_name, { 12 } },
@@ -287,6 +343,20 @@ local simple_operation_cases = {
         func = 'crud.insert_object',
         args = { space_name, { 'id' } },
         op = 'insert',
+        expect_error = true,
+    },
+    {
+        name = 'insert_many_error',
+        func = 'crud.insert_many',
+        args = { space_name, {{ 'id' }} },
+        op = 'insert_many',
+        expect_error = true,
+    },
+    {
+        name = 'insert_object_many_error',
+        func = 'crud.insert_object_many',
+        args = { space_name, {{ 'id' }} },
+        op = 'insert_many',
         expect_error = true,
     },
     {
@@ -344,6 +414,20 @@ local simple_operation_cases = {
         func = 'crud.upsert_object',
         args = { space_name, { 'id' }, {{'+', 'age', 1}} },
         op = 'upsert',
+        expect_error = true,
+    },
+    {
+        name = 'upsert_many_error',
+        func = 'crud.upsert_many',
+        args = { space_name, {{ 'id' }}, {{{'+', 'age', 1}}} },
+        op = 'upsert_many',
+        expect_error = true,
+    },
+    {
+        name = 'upsert_object_many_error',
+        func = 'crud.upsert_object_many',
+        args = { space_name, {{ 'id' }}, {{{'+', 'age', 1}}} },
+        op = 'upsert_many',
         expect_error = true,
     },
     {
@@ -807,8 +891,8 @@ local function validate_metrics(g, metrics)
     t.assert_type(stats_sum, 'table', '`tnt_crud_stats` summary metrics found')
 
 
-    local expected_operations = { 'insert', 'batch_insert', 'get', 'replace', 'update',
-        'upsert', 'batch_upsert', 'delete', 'select', 'truncate', 'len', 'count', 'borders' }
+    local expected_operations = { 'insert', 'insert_many', 'get', 'replace', 'update',
+        'upsert', 'upsert_many', 'delete', 'select', 'truncate', 'len', 'count', 'borders' }
 
     if g.params.quantiles == true then
         t.assert_items_equals(get_unique_label_values(quantile_stats, 'operation'), expected_operations,

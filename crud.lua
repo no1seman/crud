@@ -36,11 +36,11 @@ crud.insert_object = stats.wrap(insert.object, stats.op.INSERT)
 
 -- @refer batch_insert.tuples_batch
 -- @function insert_many
-crud.insert_many = batch_insert.tuples_batch
+crud.insert_many = stats.wrap(batch_insert.tuples_batch, stats.op.INSERT_MANY)
 
 -- @refer batch_insert.objects_batch
 -- @function insert_object_many
-crud.insert_object_many = batch_insert.objects_batch
+crud.insert_object_many = stats.wrap(batch_insert.objects_batch, stats.op.INSERT_MANY)
 
 -- @refer get.call
 -- @function get
@@ -72,11 +72,11 @@ crud.upsert = stats.wrap(upsert.tuple, stats.op.UPSERT)
 
 -- @refer batch_upsert.tuples_batch
 -- @function upsert_many
-crud.upsert_many = batch_upsert.tuples_batch
+crud.upsert_many = stats.wrap(batch_upsert.tuples_batch, stats.op.UPSERT_MANY)
 
 -- @refer batch_upsert.objects_batch
 -- @function upsert_object_many
-crud.upsert_object_many = batch_upsert.objects_batch
+crud.upsert_object_many = stats.wrap(batch_upsert.objects_batch, stats.op.UPSERT_MANY)
 
 -- @refer upsert.object
 -- @function upsert
