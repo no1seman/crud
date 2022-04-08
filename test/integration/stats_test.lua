@@ -21,6 +21,7 @@ local space_name = 'customers'
 local non_existing_space_id = 100500
 local non_existing_space_name = 'non_existing_space'
 local new_space_name = 'newspace'
+local select_by_secondary_index_idx = 2
 
 local function before_all(g)
     g.cluster = helpers.Cluster:new({
@@ -152,7 +153,8 @@ local eval = {
 }
 
 local simple_operation_cases = {
-    insert = {
+    {
+        name = 'insert',
         func = 'crud.insert',
         args = {
             space_name,
@@ -160,7 +162,8 @@ local simple_operation_cases = {
         },
         op = 'insert',
     },
-    insert_object = {
+    {
+        name = 'insert_object',
         func = 'crud.insert_object',
         args = {
             space_name,
@@ -168,22 +171,26 @@ local simple_operation_cases = {
         },
         op = 'insert',
     },
-    get = {
+    {
+        name = 'get',
         func = 'crud.get',
         args = { space_name, { 12 } },
         op = 'get',
     },
-    select = {
+    {
+        name = 'select',
         func = 'crud.select',
         args = { space_name, {{ '==', 'id_index', 3 }} },
         op = 'select',
     },
-    pairs = {
+    {
+        name = 'pairs',
         eval = eval.pairs,
         args = { space_name, {{ '==', 'id_index', 3 }} },
         op = 'select',
     },
-    replace = {
+    {
+        name = 'replace',
         func = 'crud.replace',
         args = {
             space_name,
@@ -191,7 +198,8 @@ local simple_operation_cases = {
         },
         op = 'replace',
     },
-    replace_object = {
+    {
+        name = 'replace_object',
         func = 'crud.replace_object',
         args = {
             space_name,
@@ -199,7 +207,8 @@ local simple_operation_cases = {
         },
         op = 'replace',
     },
-    update = {
+    {
+        name = 'update',
         prepare = function(g)
             helpers.insert_objects(g, space_name, {{
                 id = 15, name = 'Ivan', last_name = 'Ivanov',
@@ -210,7 +219,8 @@ local simple_operation_cases = {
         args = { space_name, 12, {{'+', 'age', 10}} },
         op = 'update',
     },
-    upsert = {
+    {
+        name = 'upsert',
         func = 'crud.upsert',
         args = {
             space_name,
@@ -219,7 +229,8 @@ local simple_operation_cases = {
         },
         op = 'upsert',
     },
-    upsert_object = {
+    {
+        name = 'upsert_object',
         func = 'crud.upsert_object',
         args = {
             space_name,
@@ -228,116 +239,136 @@ local simple_operation_cases = {
         },
         op = 'upsert',
     },
-    delete = {
+    {
+        name = 'delete',
         func = 'crud.delete',
         args = { space_name, { 12 } },
         op = 'delete',
     },
-    truncate = {
+    {
+        name = 'truncate',
         func = 'crud.truncate',
         args = { space_name },
         op = 'truncate',
     },
-    len = {
+    {
+        name = 'len',
         func = 'crud.len',
         args = { space_name },
         op = 'len',
     },
-    count = {
+    {
+        name = 'count',
         func = 'crud.count',
         args = { space_name, {{ '==', 'id_index', 3 }} },
         op = 'count',
     },
-    min = {
+    {
+        name = 'min',
         func = 'crud.min',
         args = { space_name },
         op = 'borders',
     },
-    max = {
+    {
+        name = 'max',
         func = 'crud.max',
         args = { space_name },
         op = 'borders',
     },
-    insert_error = {
+    {
+        name = 'insert_error',
         func = 'crud.insert',
         args = { space_name, { 'id' } },
         op = 'insert',
         expect_error = true,
     },
-    insert_object_error = {
+    {
+        name = 'insert_object_error',
         func = 'crud.insert_object',
         args = { space_name, { 'id' } },
         op = 'insert',
         expect_error = true,
     },
-    get_error = {
+    {
+        name = 'get_error',
         func = 'crud.get',
         args = { space_name, { 'id' } },
         op = 'get',
         expect_error = true,
     },
-    select_error = {
+    {
+        name = 'select_error',
         func = 'crud.select',
         args = { space_name, {{ '==', 'id_index', 'sdf' }} },
         op = 'select',
         expect_error = true,
     },
-    pairs_error = {
+    {
+        name = 'pairs_error',
         eval = eval.pairs,
         args = { space_name, {{ '%=', 'id_index', 'sdf' }} },
         op = 'select',
         expect_error = true,
         pcall = true,
     },
-    replace_error = {
+    {
+        name = 'replace_error',
         func = 'crud.replace',
         args = { space_name, { 'id' } },
         op = 'replace',
         expect_error = true,
     },
-    replace_object_error = {
+    {
+        name = 'replace_object_error',
         func = 'crud.replace_object',
         args = { space_name, { 'id' } },
         op = 'replace',
         expect_error = true,
     },
-    update_error = {
+    {
+        name = 'update_error',
         func = 'crud.update',
         args = { space_name, { 'id' }, {{'+', 'age', 1}} },
         op = 'update',
         expect_error = true,
     },
-    upsert_error = {
+    {
+        name = 'upsert_error',
         func = 'crud.upsert',
         args = { space_name, { 'id' }, {{'+', 'age', 1}} },
         op = 'upsert',
         expect_error = true,
     },
-    upsert_object_error = {
+    {
+        name = 'upsert_object_error',
         func = 'crud.upsert_object',
         args = { space_name, { 'id' }, {{'+', 'age', 1}} },
         op = 'upsert',
         expect_error = true,
     },
-    delete_error = {
+    {
+        name = 'delete_error',
         func = 'crud.delete',
         args = { space_name, { 'id' } },
         op = 'delete',
         expect_error = true,
     },
-    count_error = {
+    {
+        name = 'count_error',
         func = 'crud.count',
         args = { space_name, {{ '==', 'id_index', 'sdf' }} },
         op = 'count',
         expect_error = true,
     },
-    min_error = {
+    {
+        name = 'min_error',
         func = 'crud.min',
         args = { space_name, 'badindex' },
         op = 'borders',
         expect_error = true,
     },
-    max_error = {
+    {
+        name = 'max_error',
         func = 'crud.max',
         args = { space_name, 'badindex' },
         op = 'borders',
@@ -371,28 +402,32 @@ local prepare_select_data = function(g)
 end
 
 local select_cases = {
-    select_by_primary_index = {
+    {
+        name = 'select_by_primary_index',
         func = 'crud.select',
         conditions = {{ '==', 'id_index', 3 }},
         map_reduces = 0,
         tuples_fetched = 1,
         tuples_lookup = 1,
     },
-    select_by_secondary_index = {
+    {
+        name = 'select_by_secondary_index',
         func = 'crud.select',
         conditions = {{ '==', 'age_index', 46 }},
         map_reduces = 1,
         tuples_fetched = 1,
         tuples_lookup = 1,
     },
-    select_full_scan = {
+    {
+        name = 'select_full_scan',
         func = 'crud.select',
         conditions = {{ '>', 'id_index', 0 }, { '==', 'city', 'Kyoto' }},
         map_reduces = 1,
         tuples_fetched = 0,
         tuples_lookup = 4,
     },
-    pairs_by_primary_index = {
+    {
+        name = 'pairs_by_primary_index',
         eval = eval.pairs,
         conditions = {{ '==', 'id_index', 3 }},
         map_reduces = 0,
@@ -401,7 +436,8 @@ local select_cases = {
         -- after_tuple scroll for second batch.
         tuples_lookup = 2,
     },
-    pairs_by_secondary_index = {
+    {
+        name = 'pairs_by_secondary_index',
         eval = eval.pairs,
         conditions = {{ '==', 'age_index', 46 }},
         map_reduces = 1,
@@ -410,7 +446,8 @@ local select_cases = {
         -- after_tuple scroll for second batch.
         tuples_lookup = 2,
     },
-    pairs_full_scan = {
+    {
+        name = 'pairs_full_scan',
         eval = eval.pairs,
         conditions = {{ '>', 'id_index', 0 }, { '==', 'city', 'Kyoto' }},
         map_reduces = 1,
@@ -461,8 +498,8 @@ end
 
 -- Call some operations for existing
 -- spaces and ensure statistics is updated.
-for name, case in pairs(simple_operation_cases) do
-    local test_name = ('test_%s'):format(name)
+for _, case in pairs(simple_operation_cases) do
+    local test_name = ('test_%s'):format(case.name)
 
     if case.prepare ~= nil then
         pgroup.before_test(test_name, case.prepare)
@@ -573,8 +610,8 @@ pgroup.test_non_existing_space = function(g)
 end
 
 
-for name, case in pairs(select_cases) do
-    local test_name = ('test_%s_details'):format(name)
+for _, case in pairs(select_cases) do
+    local test_name = ('test_%s_details'):format(case.name)
 
     pgroup.before_test(test_name, prepare_select_data)
 
@@ -770,8 +807,8 @@ local function validate_metrics(g, metrics)
     t.assert_type(stats_sum, 'table', '`tnt_crud_stats` summary metrics found')
 
 
-    local expected_operations = { 'insert', 'get', 'replace', 'update',
-        'upsert', 'delete', 'select', 'truncate', 'len', 'count', 'borders' }
+    local expected_operations = { 'insert', 'batch_insert', 'get', 'replace', 'update',
+        'upsert', 'batch_upsert', 'delete', 'select', 'truncate', 'len', 'count', 'borders' }
 
     if g.params.quantiles == true then
         t.assert_items_equals(get_unique_label_values(quantile_stats, 'operation'), expected_operations,
@@ -867,7 +904,7 @@ local function check_updated_per_call(g)
     local tuples_fetched_before = find_obs('tnt_crud_tuples_fetched', details_labels, metrics_before)
     local map_reduces_before = find_obs('tnt_crud_map_reduces', details_labels, metrics_before)
 
-    local case = select_cases['select_by_secondary_index']
+    local case = select_cases[select_by_secondary_index_idx]
     local _, err = g.router:call(case.func, { space_name, case.conditions })
     t.assert_equals(err, nil)
 
