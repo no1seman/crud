@@ -25,7 +25,7 @@ It can be used to convert received tuples to objects via `crud.unflatten_rows` f
 For example:
 
 ```lua
-res, err = crud.select('customers')
+res, err = crud.select('customers', nil, {first = 2})
 res
 ---
 - metadata:
@@ -397,6 +397,8 @@ where:
      if full primary key equal condition is specified
   * `timeout` (`?number`) - `vshard.call` timeout (in seconds)
   * `fields` (`?table`) - field names for getting only a subset of fields
+  * `fullscan` (`?boolean`) - if `true` then a critical log entry will be skipped
+    on potentially long `select` (`>`, `>=`, `<`, `<=` and `first` > 1000)
   * `mode` (`?string`, `read` or `write`) - if `write` is specified then `select` is
     performed on master
   * `prefer_replica` (`?boolean`) - if `true` then the preferred target is one of
@@ -419,7 +421,7 @@ Each condition is a table `{operator, field-identifier, value}`:
 **Example:**
 
 ```lua
-crud.select('customers', {{'<=', 'age', 35}})
+crud.select('customers', {{'<=', 'age', 35}}, {first = 10})
 ---
 - metadata:
   - {'name': 'id', 'type': 'unsigned'}
@@ -443,8 +445,10 @@ See more examples of select queries [here.](https://github.com/tarantool/crud/bl
 ### Pairs
 
 You can iterate across a distributed space using the `crud.pairs` function.
-Its arguments are the same as [`crud.select`](#select) arguments,
-but negative `first` values aren't allowed.
+Its arguments are the same as [`crud.select`](#select) arguments except
+`fullscan` (it does not exist because `crud.pairs` does not generate a critical
+log entry on potentially long requests) and negative `first` values aren't
+allowed.
 User could pass use_tomap flag (false by default) to iterate over flat tuples or objects.
 
 **Example:**
@@ -544,7 +548,7 @@ Returns true or nil with error.
 **Example:**
 
 ```lua
-#crud.select('customers', {{'<=', 'age', 35}})
+#crud.select('customers', {{'<=', 'age', 35}}, {first = 10})
 ---
 - 1
 ...
@@ -552,7 +556,7 @@ crud.truncate('customers', {timeout = 2})
 ---
 - true
 ...
-#crud.select('customers', {{'<=', 'age', 35}})
+#crud.select('customers', {{'<=', 'age', 35}}, {first = 10})
 ---
 - 0
 ...
@@ -580,7 +584,7 @@ Returns number or nil with error.
 Using `memtx`:
 
 ```lua
-#crud.select('customers')
+#crud.select('customers', nil, {fullscan = true})
 ---
 - 5
 ...

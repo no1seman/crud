@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 
 ### Changed
+* Behaviour of potentially long `select` calls (`>`, `>=`, `<`, `<=` and
+  `first` > 1000): a critical log entry containing the current stack traceback
+  is created upon such function calls — an user can explicitly request a full
+  scan though by passing fullscan=true to select's options table argument in
+  which a case a log entry will not be created (#276).
 
 ### Fixed
 
