@@ -637,6 +637,8 @@ where:
   * `force_map_call` (`?boolean`) - if `true`
     then the map call is performed without any optimizations even,
     default value is `false`
+  * `fullscan` (`?boolean`) - if `true` then a critical log entry will be skipped
+    on potentially long `count` (`>`, `>=`, `<`, `<=`)
   * `mode` (`?string`, `read` or `write`) - if `write` is specified then `count` is
     performed on master, default value is `read`
   * `prefer_replica` (`?boolean`) - if `true` then the preferred target is one of
@@ -646,9 +648,9 @@ where:
     default value is `false`
 
 ```lua
-crud.count('customers', {{'<=', 'age', 35}})
+crud.count('customers', {{'==', 'age', 35}})
 ---
-- 5
+- 1
 ...
 ```
 

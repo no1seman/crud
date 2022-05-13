@@ -488,4 +488,17 @@ function helpers.count_on_replace_triggers(server, space_name)
     ]], {space_name})
 end
 
+function helpers.fflush_cluster_stdout(cluster, capture)
+    -- Sometimes we have a delay here. This hack helps to wait for the end of
+    -- the output. It shouldn't take much time.
+    cluster:server('router').net_box:eval([[
+        require('log').error("crud fflush stdout message")
+    ]])
+    local captured = ""
+    while not string.find(captured, "crud fflush stdout message", 1, true) do
+        captured = captured .. (capture:flush().stdout or "")
+    end
+    return captured
+end
+
 return helpers
