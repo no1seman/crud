@@ -155,6 +155,62 @@ pgroup.test_non_existent_space = function(g)
     -- we got 1 errors about non existent space, because stop_on_error == true
     t.assert_equals(#errs, 1)
     t.assert_str_contains(errs[1].err, 'Space "non_existent_space" doesn\'t exist')
+
+    -- replace_many
+    local result, errs = g.cluster.main_server.net_box:call('crud.replace_many', {
+        'non_existent_space',
+        {
+            {1, box.NULL, 'Alex', 59},
+            {2, box.NULL, 'Anna', 23},
+            {3, box.NULL, 'Daria', 18}
+        }
+    })
+
+    t.assert_equals(result, nil)
+    t.assert_not_equals(errs, nil)
+    t.assert_equals(#errs, 1)
+    t.assert_str_contains(errs[1].err, 'Space "non_existent_space" doesn\'t exist')
+
+    -- replace_object_many
+    -- default: stop_on_error == false
+    local result, errs = g.cluster.main_server.net_box:call('crud.replace_object_many', {
+        'non_existent_space',
+        {
+            {id = 1, name = 'Fedor', age = 59},
+            {id = 2, name = 'Anna', age = 23},
+            {id = 3, name = 'Daria', age = 18}
+        }
+    })
+
+    t.assert_equals(result, nil)
+    t.assert_not_equals(errs, nil)
+
+    -- we got 3 errors about non existent space, because it caused by flattening objects
+    t.assert_equals(#errs, 3)
+    t.assert_str_contains(errs[1].err, 'Space "non_existent_space" doesn\'t exist')
+    t.assert_str_contains(errs[2].err, 'Space "non_existent_space" doesn\'t exist')
+    t.assert_str_contains(errs[3].err, 'Space "non_existent_space" doesn\'t exist')
+
+    -- replace_object_many
+    -- stop_on_error == true
+    local result, errs = g.cluster.main_server.net_box:call('crud.replace_object_many', {
+        'non_existent_space',
+        {
+            {id = 1, name = 'Fedor', age = 59},
+            {id = 2, name = 'Anna', age = 23},
+            {id = 3, name = 'Daria', age = 18}
+        },
+        {
+            stop_on_error = true,
+        }
+    })
+
+    t.assert_equals(result, nil)
+    t.assert_not_equals(errs, nil)
+
+    -- we got 1 errors about non existent space, because stop_on_error == true
+    t.assert_equals(#errs, 1)
+    t.assert_str_contains(errs[1].err, 'Space "non_existent_space" doesn\'t exist')
 end
 
 pgroup.test_batch_insert_object_get = function(g)
@@ -3321,6 +3377,139 @@ pgroup.test_upsert_many_rollback_and_stop_on_error = function(g)
     local conn_s1 = g.cluster:server('s1-master').net_box
     local result = conn_s1.space['customers']:get(9)
     t.assert_equals(result, nil)
+end
+
+pgroup.test_replace_object_many_get = function(g)
+    -- bad format
+    local result, errs = g.cluster.main_server.net_box:call('crud.replace_object_many', {
+        'developers',
+        {
+            {id = 1, name = 'Fedor', login = 'fedordostoevsky'},
+            {id = 2, name = 'Anna'},
+        }
+    })
+
+    t.assert_equals(result, nil)
+    t.assert_not_equals(errs, nil)
+    t.assert_equals(#errs, 1)
+    t.assert_str_contains(errs[1].err, 'Field \"login\" isn\'t nullable')
+    t.assert_equals(errs[1].tuple, {id = 2, name = 'Anna'})
+
+    -- bad format
+    -- two errors, default: stop_on_error == false
+    local result, errs = g.cluster.main_server.net_box:call('crud.replace_object_many', {
+        'developers',
+        {
+            {id = 1, name = 'Fedor'},
+            {id = 2, name = 'Anna'},
+        }
+    })
+
+    t.assert_equals(result, nil)
+    t.assert_not_equals(errs, nil)
+    t.assert_equals(#errs, 2)
+
+    table.sort(errs, function(err1, err2) return err1.tuple.id < err2.tuple.id end)
+
+    t.assert_str_contains(errs[1].err, 'Field \"login\" isn\'t nullable')
+    t.assert_equals(errs[1].tuple, {id = 1, name = 'Fedor'})
+
+    t.assert_str_contains(errs[2].err, 'Field \"login\" isn\'t nullable')
+    t.assert_equals(errs[2].tuple, {id = 2, name = 'Anna'})
+
+    -- replace_object_many
+    -- all success
+    local result, errs = g.cluster.main_server.net_box:call('crud.replace_object_many', {
+        'developers',
+        {
+            {id = 1, name = 'Fedor', login = 'fedordostoevsky'},
+            {id = 2, name = 'Anna', login = 'annaKar'},
+            {id = 3, name = 'Daria', login = 'DMongen'}
+        }
+    })
+
+    t.assert_equals(errs, nil)
+    t.assert_equals(result.metadata, {
+        {name = 'id', type = 'unsigned'},
+        {name = 'bucket_id', type = 'unsigned'},
+        {name = 'name', type = 'string'},
+        {name = 'login', type = 'string'},
+    })
+
+    local objects = crud.unflatten_rows(result.rows, result.metadata)
+    table.sort(objects, function(obj1, obj2) return obj1.id < obj2.id end)
+    t.assert_equals(objects, {
+        {id = 1, name = 'Fedor', login = 'fedordostoevsky', bucket_id = 477},
+        {id = 2, name = 'Anna', login = 'annaKar', bucket_id = 401},
+        {id = 3, name = 'Daria', login = 'DMongen', bucket_id = 2804},
+    })
+
+    -- get
+    -- primary key = 1 -> bucket_id = 477 -> s2-master
+    local conn_s2 = g.cluster:server('s2-master').net_box
+    local result = conn_s2.space['developers']:get(1)
+    t.assert_equals(result, {1, 477, 'Fedor', 'fedordostoevsky'})
+
+    -- primary key = 2 -> bucket_id = 401 -> s2-master
+    local conn_s2 = g.cluster:server('s2-master').net_box
+    local result = conn_s2.space['developers']:get(2)
+    t.assert_equals(result, {2, 401, 'Anna', 'annaKar'})
+
+    -- primary key = 3 -> bucket_id = 2804 -> s1-master
+    local conn_s1 = g.cluster:server('s1-master').net_box
+    local result = conn_s1.space['developers']:get(3)
+    t.assert_equals(result, {3, 2804, 'Daria', 'DMongen'})
+
+    -- replace_object_many again
+    -- default: stop_on_error = false, rollback_on_error = false
+    -- one error on one storage without rollback
+    local result, errs = g.cluster.main_server.net_box:call('crud.replace_object_many', {
+        'developers',
+        {
+            {id = 3, name = 'Alex', login = 'pushkinnn'},
+            {id = 5, name = 'Sergey', login = 'Prof1234'},
+            {id = 22, name = 'Anastasia', login = 'DMongen'},
+            {id = 9, name = 'Anna', login = 'anna_boleyn'},
+        }
+    })
+
+    t.assert_equals(errs, nil)
+    t.assert_equals(result.metadata, {
+        {name = 'id', type = 'unsigned'},
+        {name = 'bucket_id', type = 'unsigned'},
+        {name = 'name', type = 'string'},
+        {name = 'login', type = 'string'},
+    })
+
+    local objects = crud.unflatten_rows(result.rows, result.metadata)
+    table.sort(objects, function(obj1, obj2) return obj1.id < obj2.id end)
+    t.assert_equals(objects, {
+        {id = 3, name = 'Alex', login = 'pushkinnn', bucket_id = 2804},
+        {id = 5, name = 'Sergey', login = 'Prof1234', bucket_id = 1172},
+        {id = 9, name = 'Anna', login = 'anna_boleyn', bucket_id = 1644},
+        {id = 22, name = 'Anastasia', login = 'DMongen', bucket_id = 655},
+    })
+
+    -- get
+    -- primary key = 22 -> bucket_id = 655 -> s2-master
+    local conn_s2 = g.cluster:server('s2-master').net_box
+    local result = conn_s2.space['developers']:get(22)
+    t.assert_equals(result, {22, 655, 'Anastasia', 'DMongen'})
+
+    -- primary key = 5 -> bucket_id = 1172 -> s2-master
+    local conn_s2 = g.cluster:server('s2-master').net_box
+    local result = conn_s2.space['developers']:get(5)
+    t.assert_equals(result, {5, 1172, 'Sergey', 'Prof1234'})
+
+    -- primary key = 3 -> bucket_id = 2804 -> s1-master
+    local conn_s1 = g.cluster:server('s1-master').net_box
+    local result = conn_s1.space['developers']:get(3)
+    t.assert_equals(result, {3, 2804, 'Alex', 'pushkinnn'})
+
+    -- primary key = 9 -> bucket_id = 1644 -> s1-master
+    local conn_s1 = g.cluster:server('s1-master').net_box
+    local result = conn_s1.space['developers']:get(9)
+    t.assert_equals(result, {9, 1644, 'Anna', 'anna_boleyn'})
 end
 
 pgroup.test_batch_insert_partial_result = function(g)
